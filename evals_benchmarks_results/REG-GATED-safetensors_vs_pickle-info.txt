@@ -1,0 +1,13 @@
+As I noticed (small) differences in e.g. attention heatmaps if loading from .safetensors vs. full model pickle (.pt), I am also sharing the original torch.save models (pickles).
+You can find them on my HuggingFace as of now.
+
+This is due to buffers etc., not model weights (if I load the pickle and then load the safetensors state_dict into the model, there are no differences).
+
+The provided .csv files contains the diff, example for one model (it's very similar across all models).
+
+All evals / benchmarks were done on the pickle.
+
+
+Pickles *may* contain / execute arbitrary (including malicious) code. I do not recommend trusting a pickle / .pt file if you don't know what you're doing.
+
+However, I want to offer an informed choice to load the original model for research purposes.
