@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import os
+from safetensors.torch import load_file
+import argparse
 
 # Suppress warnings spam from torch, especially
 import warnings
@@ -16,12 +18,57 @@ import clip as orgclip
 
 # Load CLIP ViT-L/14 original model for comparison
 device = "cuda" if torch.cuda.is_available() else "cpu"
-modelorg, preprocess = orgclip.load("ViT-L/14", device=device)
 
-# Load register CLIP fine-tune
-model = torch.load("CLIPneedsREGISTERS/REG-XGATED/ft-checkpoints/clip_ft_12_backtoweight.pt")
-model = model.cuda().float()
-modelorg = modelorg.cuda().float()
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Visualize Long-CLIP patch-text cosine similarity')
+    parser.add_argument('--base_model', default="ViT-L/14", help="Path to a ViT-L/14 model, pickle (.pt) or .safetensors")
+    parser.add_argument('--use_model', default="models/ViT-L-14-REG-GATED-balanced-ckpt12.safetensors", help="Path to a ViT-L/14 model, pickle (.pt) or .safetensors")
+    parser.add_argument('--token_folder', default="EX-tokens-vis", help="Folder with gradient ascent .txt files of CLIP's opinions (or yours)")
+    parser.add_argument('--image_folder', default="EX-image-vis", help="Folder with images, matching for .txt files: 'image.png' -> 'tokens_image.txt'")
+    return parser.parse_args()
+
+args = parse_arguments()
+model_name_or_path = args.use_model
+
+# Folder paths
+image_folder = args.image_folder
+tokens_folder = args.token_folder
+
+if model_name_or_path.endswith(".safetensors"):
+    print("Detected .safetensors file. Loading ViT-L/14 and applying file as state_dict...")
+    
+    # Load ViT-L/14 explicitly
+    model, preprocess = clip.load("ViT-L/14", device=device, jit=False)
+
+    # Load the safetensors state_dict and apply
+    state_dict = load_file(model_name_or_path)
+    model.load_state_dict(state_dict)
+
+else:
+    print("Detected non-.safetensors file. Attempting to load as a pickle...")
+    
+    # Load normally as per the existing logic
+    model, preprocess = clip.load(model_name_or_path, device=device, jit=False)
+
+if args.base_model.endswith(".safetensors"):
+    print("Detected .safetensors file. Loading ViT-L/14 and applying file as state_dict...")
+    
+    # Load ViT-L/14 explicitly
+    modelorg, preprocess = orgclip.load("ViT-L/14", device=device, jit=False)
+
+    # Load the safetensors state_dict and apply
+    state_dict = load_file(args.base_model)
+    modelorg.load_state_dict(state_dict)
+
+else:
+    print("Detected non-.safetensors file. Attempting to load as a pickle...")
+    
+    # Load normally as per the existing logic
+    modelorg, preprocess = orgclip.load(args.base_model, device=device, jit=False)
+
+
+model = model.float()
+modelorg = modelorg.float()
 
 # Function to encode image features for CLIP model
 def clip_encode_image(model, image_input):
@@ -58,10 +105,6 @@ def orgclip_encode_image(modelorg, image_input):
         x = modelorg.visual.transformer(x)
         x = x.permute(1, 0, 2)
         return x
-
-# Folder paths
-image_folder = "EX-image-vis"
-tokens_folder = "EX-tokens-vis"
 
 # Loop through each image file in the image folder
 for image_filename in os.listdir(image_folder):
