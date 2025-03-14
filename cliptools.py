@@ -16,6 +16,8 @@ from torch import nn as nn
 from torch.nn import functional as F
 import torch.utils.data
 from clip.model import QuickGELU
+from INFERclipregXGATED.model import QuickGELU as REGQuickGELU
+from longINFERclipregXGATED.model import QuickGELU as LongQuickGELU
 import numpy as np
 import torch.nn as nn
 import random
@@ -878,6 +880,18 @@ class ActivationNorm(InvLoss):
 #             MAIN HOOKS 
 # ---------------------------------
 
+class ViTREGFeatHook(InvLoss):# seems that doesn't matter
+    def __init__(self, hook: ViTAbsHookHolder, key: str, coefficient: float = 1.0):
+        super().__init__(coefficient)
+        self.hook = hook
+        self.key = key
+
+    def loss(self, x: torch.tensor):
+        d, o = self.hook(x)
+        all_feats = d[self.key][0][:, 5:, :].mean(dim=1)  # Exclude CLS and REG
+        mn = min(all_feats.shape)
+        return - all_feats[:mn, :mn].diag().mean()
+
 class ViTFeatHook(InvLoss):
     def __init__(self, hook: ViTAbsHookHolder, key: str, coefficient: float = 1.0):
         super().__init__(coefficient)
@@ -899,6 +913,29 @@ class ReconstructionLoss(ViTFeatHook):
 
     def loss(self, x: torch.tensor):
         return (self.hook(x) - self.ref).norm()
+
+class ViTFusionEnsFeatHook(ViTFeatHook):
+    def __init__(self, hook: ViTAbsHookHolder, key: str, feat: int = 0, coefficient: float = 1.0):
+        super().__init__(hook, key, coefficient)
+        self.f = feat
+
+    def loss(self, x: torch.tensor):
+        d, o = self.hook(x)
+        all_feats = d[self.key][0].mean(dim=-1)
+        mn = min(all_feats.shape)
+        return - all_feats[self.f].mean()
+
+
+class ViTREGEnsFeatHook(ViTREGFeatHook):
+    def __init__(self, hook: ViTAbsHookHolder, key: str, feat: int = 0, coefficient: float = 1.0):
+        super().__init__(hook, key, coefficient)
+        self.f = feat
+
+    def loss(self, x: torch.tensor):
+        d, o = self.hook(x)
+        all_feats = d[self.key][0][:, 1:, :].mean(dim=1)  # Exclude CLS
+        mn = min(all_feats.shape)
+        return - all_feats[:mn, self.f].diag().mean()
 
 class ViTEnsFeatHook(ViTFeatHook):
     def __init__(self, hook: ViTAbsHookHolder, key: str, feat: int = 0, coefficient: float = 1.0):
@@ -967,6 +1004,57 @@ class ViTAttHookHolder(ViTAbsHookHolder):
         names = ['in_feat', 'keys', 'queries', 'values', 'scores', 'out_feat']
         return {n: o for n, o in zip(names, options) if o is not None}, out
 
+class ClipReLUHook(ViTAbsHookHolder):
+    def __init__(self, classifier: nn.Module, sl: slice = None):
+        super().__init__()
+        self.cl = classifier
+        sl = slice(None, None) if sl is None else sl
+        self.just_save = [m for m in classifier.modules() if isinstance(m, nn.ReLU)]
+        self.attentions = self.just_save[sl]
+        self.high = [ViTHook(m, True, 'high') for m in self.attentions]
+
+    def forward(self, x: torch.tensor) -> ({}, torch.tensor):
+        out = self.cl(x)
+        options = [self.high]
+        options = [[o.activations.transpose(0, 1) for o in l if o.activations is not None] if l is not None else None
+                   for l in options]
+        names = ['high']
+        return {n: o for n, o in zip(names, options) if o is not None}, out
+
+
+class LongClipGeLUHook(ViTAbsHookHolder):
+    def __init__(self, classifier: nn.Module, sl: slice = None):
+        super().__init__()
+        self.cl = classifier
+        sl = slice(None, None) if sl is None else sl
+        self.just_save = [m for m in classifier.modules() if isinstance(m, LongQuickGELU)]
+        self.attentions = self.just_save[sl]
+        self.high = [ViTHook(m, True, 'high') for m in self.attentions]
+
+    def forward(self, x: torch.tensor) -> ({}, torch.tensor):
+        out = self.cl(x)
+        options = [self.high]
+        options = [[o.activations.transpose(0, 1) for o in l if o.activations is not None] if l is not None else None
+                   for l in options]
+        names = ['high']
+        return {n: o for n, o in zip(names, options) if o is not None}, out
+
+class REGClipGeLUHook(ViTAbsHookHolder):
+    def __init__(self, classifier: nn.Module, sl: slice = None):
+        super().__init__()
+        self.cl = classifier
+        sl = slice(None, None) if sl is None else sl
+        self.just_save = [m for m in classifier.modules() if isinstance(m, REGQuickGELU)]
+        self.attentions = self.just_save[sl]
+        self.high = [ViTHook(m, True, 'high') for m in self.attentions]
+
+    def forward(self, x: torch.tensor) -> ({}, torch.tensor):
+        out = self.cl(x)
+        options = [self.high]
+        options = [[o.activations.transpose(0, 1) for o in l if o.activations is not None] if l is not None else None
+                   for l in options]
+        names = ['high']
+        return {n: o for n, o in zip(names, options) if o is not None}, out
 
 class ClipGeLUHook(ViTAbsHookHolder):
     def __init__(self, classifier: nn.Module, sl: slice = None):
