@@ -21,7 +21,7 @@ python REG-12-XGATED-featureviz-fusion-mlps.py --layer_range 8-11 --feature_rang
 - Read the green text when you run the script to see the valid range! :)
 
 - Interesting observations: MLP Fusion Gate features are either sharp or dead (thanks, ReLU...). But if not dead, they're super intricate and detailed, no matter which layer.
-- On the other hand, early layers (resblocks) inthe  ViT encode simple structures, lines, zigzags... Then more complex textures:
+- On the other hand, early layers (resblocks) in the ViT encode simple structures, lines, zigzags... Then more complex textures:
 
 ![layers-example](https://github.com/user-attachments/assets/201d7589-0eb6-4f1d-90bd-f629e6f13299)
 ```
