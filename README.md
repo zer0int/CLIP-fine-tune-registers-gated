@@ -8,6 +8,28 @@ CLIP-fine-tune-registers-gated
 - Jump to HF models: [huggingface.co/zer0int/CLIP-Registers-Gated_MLP-ViT-L-14](https://huggingface.co/zer0int/CLIP-Registers-Gated_MLP-ViT-L-14)
 - Jump to HF Long-CLIP models: [huggingface.co/zer0int/LongCLIP-Registers-Gated_MLP-ViT-L-14/](https://huggingface.co/zer0int/LongCLIP-Registers-Gated_MLP-ViT-L-14)
 ------
+### Update 14/MAR/2025:
+
+- Added feature (activation max) visualization!
+- `--use_model` by default expects `models/ViT-L-14-REG-GATED-balanced-ckpt12.safetensors`
+- You can specify layers & features as a range or discrete, example:
+```
+python REG-12-XGATED-featureviz-fusion-mlps.py --layer_range 8-11 --feature_range 42,1000,77
+```
+- That would visualize feature 42 and 1000 and 77 on layer 8, 9, 10 and 11.
+- If you exceed the valid range for Layers or Features, you'll get an IndexError.
+- Read the green text when you run the script to see the valid range! :)
+
+- Interesting observations: MLP Fusion Gate features are either sharp or dead (thanks, ReLU...). But if not dead, they're super intricate and detailed, no matter which layer.
+- On the other hand, early layers (resblocks) inthe  ViT encode simple structures, lines, zigzags... Then more complex textures:
+
+![layers-example](https://github.com/user-attachments/assets/201d7589-0eb6-4f1d-90bd-f629e6f13299)
+```
+python REG-12-XGATED-featureviz-normal-mlps.py --layer_range 1-23 --feature_range 42,100,1000
+```
+![complexity-chaos-REG-CLIP](https://github.com/user-attachments/assets/c12e21cf-5d82-4c88-aa43-bc7619ecaf14)
+
+------
 ### Update: 11/MAR/2025
 
 - Added Long-CLIP (248 tokens) version! 🎉
