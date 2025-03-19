@@ -8,6 +8,13 @@ CLIP-fine-tune-registers-gated
 - Jump to HF models: [huggingface.co/zer0int/CLIP-Registers-Gated_MLP-ViT-L-14](https://huggingface.co/zer0int/CLIP-Registers-Gated_MLP-ViT-L-14)
 - Jump to HF Long-CLIP models: [huggingface.co/zer0int/LongCLIP-Registers-Gated_MLP-ViT-L-14/](https://huggingface.co/zer0int/LongCLIP-Registers-Gated_MLP-ViT-L-14)
 ------
+### Update 19/MAR/2025:
+- Added fusion gate inspector (subset of image dataset)
+- Compares gating towards REG vs. CLS token over layers
+- Usual syntax; use `--deterministic` for same choice of images
+- Example:
+![visualize-gates](https://github.com/user-attachments/assets/b8fa35fe-bb89-493e-b920-bfd219fb039b)
+------
 ### Update 14/MAR/2025:
 
 - Added feature (activation max) visualization!
