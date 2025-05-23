@@ -1,0 +1,18 @@
+0. Unzip 'regtransformers.zip' to [here] - it's a modified version of transformers v4.52.3 that should work as a relative import:
+import transformersHF.regtransformers as transformers
+
+# Alternatively, install from source: https://github.com/zer0int/transformers
+
+1. Convert the Model:
+
+# Example checkpoint from https://huggingface.co/zer0int/CLIP-Registers-Gated_MLP-ViT-L-14 -- insert your own .pt model:
+
+python convert_regclip_original_pytorch_to_hf.py --checkpoint_path "ViT-L-14-REG-GATED-balanced-ckpt12.pt" --pytorch_dump_folder_path "converted_model" --config_path "ViT-L-14-REG-GATED.json"
+
+
+2. Copy the following to the newly created "converted_model" folder:
+
+vocab.json, tokenizer_config.json, tokenizer.json, special_tokens_map.json, preprocessor_config.json
+
+
+3. Run "python zero-shot-test-HF.py" and "python zero-shot-test-pickle.py" to get cosine similarities for [image]-[text] pairs (should be the exact same values if all went well!)
